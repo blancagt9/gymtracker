@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>GymTracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #f0f0f0; min-height: 100vh; }
+  .screen { display: none; padding: 1.25rem; max-width: 480px; margin: 0 auto; padding-bottom: 3rem; }
+  .screen.active { display: block; }
+
+  /* HOME */
+  .home-header { padding: 3rem 0 1.5rem; }
+  .home-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  .home-header p { font-size: 14px; color: #888; margin-top: 4px; text-transform: capitalize; }
+  .section-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+  .rutina-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 16px; padding: 1.25rem; margin-bottom: 12px; cursor: pointer; transition: all 0.15s; position: relative; }
+  .rutina-card:active { transform: scale(0.98); }
+  .rutina-card h2 { font-size: 17px; font-weight: 600; padding-right: 2rem; }
+  .rutina-card p { font-size: 13px; color: #666; margin-top: 4px; }
+  .rutina-badge { display: inline-block; background: #0f2d1f; color: #34d399; font-size: 11px; padding: 3px 10px; border-radius: 20px; margin-top: 8px; font-weight: 500; }
+  .rutina-del { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: #444; font-size: 18px; cursor: pointer; padding: 4px; }
+  .rutina-del:active { color: #f87171; }
+
+  /* SESSION */
+  .session-header { display: flex; align-items: center; gap: 12px; padding: 2rem 0 1rem; }
+  .back-btn { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .back-btn svg { width: 18px; height: 18px; stroke: #888; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .session-header h2 { font-size: 20px; font-weight: 700; }
+  .session-header p { font-size: 13px; color: #666; }
+  .sensaciones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1.5rem; }
+  .sens-btn { padding: 10px 4px; border: 1px solid #2a2a2a; border-radius: 12px; background: #1a1a1a; cursor: pointer; font-size: 13px; text-align: center; color: #888; transition: all 0.15s; font-family: inherit; }
+  .sens-btn.selected { border-color: #34d399; color: #34d399; background: #0f2d1f; font-weight: 600; }
+
+  /* EXERCISE */
+  .exercise-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 14px; padding: 1rem; margin-bottom: 10px; transition: border-color 0.2s; }
+  .exercise-card.done { border-color: #1a4d2e; opacity: 0.6; }
+  .ex-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .ex-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #333; background: none; cursor: pointer; flex-shrink: 0; margin-top: 2px; appearance: none; -webkit-appearance: none; transition: all 0.15s; }
+  .ex-check:checked { background: #34d399; border-color: #34d399; }
+  .ex-name { font-size: 15px; font-weight: 600; }
+  .ex-dosis { font-size: 12px; color: #34d399; margin-top: 3px; }
+  .ex-dosis span { color: #555; }
+  .field-label { font-size: 11px; color: #555; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .serie-row { display: grid; grid-template-columns: 20px 1fr 1fr auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .serie-num { font-size: 12px; color: #444; text-align: center; }
+  .rm-serie { background: none; border: none; color: #444; font-size: 16px; cursor: pointer; padding: 0 4px; }
+  input[type="text"], textarea { width: 100%; background: #111; border: 1px solid #2a2a2a; border-radius: 10px; color: #f0f0f0; font-size: 15px; padding: 9px 11px; font-family: inherit; -webkit-appearance: none; transition: border-color 0.15s; }
+  input:focus, textarea:focus { outline: none; border-color: #34d399; }
+  input::placeholder, textarea::placeholder { color: #444; }
+  textarea { resize: none; height: 48px; }
+  .add-serie-btn { background: none; border: 1px dashed #252525; border-radius: 8px; color: #555; font-size: 12px; padding: 6px; width: 100%; cursor: pointer; font-family: inherit; margin: 4px 0 8px; }
+  .add-serie-btn:active { color: #34d399; border-color: #34d399; }
+
+  /* TIMER */
+  .rest-timer { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .timer-display { font-size: 13px; color: #34d399; font-weight: 600; min-width: 36px; }
+  .timer-btn { background: #0f2d1f; border: none; border-radius: 8px; color: #34d399; font-size: 12px; padding: 5px 10px; cursor: pointer; font-family: inherit; }
+  .timer-btn.running { background: #2d1a0f; color: #fb923c; }
+
+  /* BOTTOM BUTTONS */
+  .save-btn { width: 100%; padding: 16px; background: #34d399; color: #0a1a12; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 1.25rem; font-family: inherit; }
+  .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .status-err { background: #2d0f0f; border: 1px solid #4d1a1a; color: #f87171; border-radius: 12px; padding: 12px; margin-top: 12px; font-size: 13px; }
+
+  /* LOADING */
+  .loading { text-align: center; color: #555; padding: 3rem 0; font-size: 15px; }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid #333; border-top-color: #34d399; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* DONE */
+  .done-screen { text-align: center; padding: 5rem 1rem; }
+  .done-icon { font-size: 60px; margin-bottom: 1rem; }
+  .done-screen h2 { font-size: 24px; font-weight: 700; }
+  .done-screen p { color: #666; margin-top: 8px; font-size: 15px; }
+  .new-btn { display: inline-block; margin-top: 2rem; padding: 14px 32px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 14px; color: #f0f0f0; font-size: 15px; cursor: pointer; font-family: inherit; font-weight: 500; }
+
+  /* ADD RUTINA */
+  .add-rutina-btn { width: 100%; padding: 14px; background: none; border: 1px dashed #252525; border-radius: 16px; color: #555; font-size: 15px; cursor: pointer; font-family: inherit; margin-top: 4px; }
+  .add-rutina-btn:active { color: #34d399; border-color: #34d399; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 100; align-items: flex-end; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #181818; border-radius: 24px 24px 0 0; padding: 1.5rem; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+  .modal-handle { width: 36px; height: 4px; background: #333; border-radius: 2px; margin: 0 auto 1.25rem; }
+  .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 1.25rem; }
+  .modal-label { font-size: 12px; color: #666; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .ai-box { width: 100%; background: #111; border: 1px solid #2a2a2a; border-radius: 12px; color: #f0f0f0; font-size: 14px; padding: 12px; font-family: inherit; resize: none; height: 140px; }
+  .ai-box:focus { outline: none; border-color: #34d399; }
+  .ai-parse-btn { width: 100%; padding: 12px; background: #1a2d24; border: 1px solid #34d399; border-radius: 12px; color: #34d399; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 8px; }
+  .ai-parse-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .parsed-preview { background: #111; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1rem; margin-top: 1rem; }
+  .parsed-preview h4 { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: #34d399; }
+  .parsed-ej { font-size: 13px; color: #aaa; padding: 4px 0; border-bottom: 1px solid #1e1e1e; }
+  .parsed-ej:last-child { border-bottom: none; }
+  .parsed-ej strong { color: #f0f0f0; }
+  .ej-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .ej-row input { flex: 1; }
+  .rm-btn { background: none; border: none; color: #444; font-size: 20px; cursor: pointer; padding: 0 6px; flex-shrink: 0; }
+  .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 1rem; }
+  .btn-cancel { padding: 13px; background: none; border: 1px solid #2a2a2a; border-radius: 12px; color: #888; font-size: 15px; cursor: pointer; font-family: inherit; }
+  .btn-confirm { padding: 13px; background: #34d399; border: none; border-radius: 12px; color: #0a1a12; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .btn-confirm:disabled { opacity: 0.4; }
+  .add-ej-btn { background: none; border: 1px dashed #252525; border-radius: 8px; color: #555; font-size: 13px; padding: 8px; width: 100%; cursor: pointer; font-family: inherit; margin-top: 4px; }
+  .tab-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 1.25rem; }
+  .tab-btn { padding: 10px; border: 1px solid #2a2a2a; border-radius: 10px; background: #111; color: #666; font-size: 13px; cursor: pointer; font-family: inherit; text-align: center; }
+  .tab-btn.active { border-color: #34d399; color: #34d399; background: #0f2d1f; font-weight: 600; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* HISTORIAL */
+  .hist-item { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1rem; margin-bottom: 8px; }
+  .hist-date { font-size: 13px; color: #34d399; font-weight: 600; }
+  .hist-rutina { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  .hist-sens { font-size: 12px; color: #666; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="s-home" class="screen active">
+  <div class="home-header">
+    <h1>Entreno 💪</h1>
+    <p id="today-date"></p>
+  </div>
+  <p class="section-label">¿Qué rutina toca?</p>
+  <div id="rutinas-list"><div class="loading"><span class="spinner"></span> Cargando...</div></div>
+  <button class="add-rutina-btn" onclick="openModal()">+ Nueva rutina</button>
+  <div style="margin-top:1.5rem;">
+    <p class="section-label">Últimas sesiones</p>
+    <div id="historial-list"><div class="loading" style="padding:1rem 0;font-size:13px;">Cargando...</div></div>
+  </div>
+</div>
+
+<!-- SESSION -->
+<div id="s-session" class="screen">
+  <div class="session-header">
+    <button class="back-btn" onclick="goHome()">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <div>
+      <h2 id="session-title"></h2>
+      <p id="session-count"></p>
+    </div>
+  </div>
+  <p class="section-label">¿Cómo te sientes?</p>
+  <div class="sensaciones">
+    <button class="sens-btn" onclick="setSens(this,'💪 Bien')">💪 Bien</button>
+    <button class="sens-btn" onclick="setSens(this,'😐 Normal')">😐 Normal</button>
+    <button class="sens-btn" onclick="setSens(this,'😓 Mal')">😓 Mal</button>
+  </div>
+  <p class="section-label">Ejercicios</p>
+  <div id="ejercicios-list"></div>
+  <button class="save-btn" id="save-btn" onclick="guardarSesion()">Guardar en Notion</button>
+  <div id="status-msg"></div>
+</div>
+
+<!-- DONE -->
+<div id="s-done" class="screen">
+  <div class="done-screen">
+    <div class="done-icon">✅</div>
+    <h2>Sesión guardada</h2>
+    <p id="done-summary">Todo registrado en Notion</p>
+    <button class="new-btn" onclick="goHome()">Nueva sesión</button>
+  </div>
+</div>
+
+<!-- MODAL NUEVA RUTINA -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Nueva rutina</h3>
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('manual')">✏️ Manual</button>
+      <button class="tab-btn" onclick="switchTab('ai')">✨ Pegar texto</button>
+    </div>
+
+    <!-- TAB MANUAL -->
+    <div class="tab-content active" id="tab-manual">
+      <div class="modal-label">Nombre de la rutina</div>
+      <input type="text" id="new-rutina-name" placeholder="ej. Tracción Core" style="margin-bottom:1rem;">
+      <div class="modal-label">Ejercicios</div>
+      <div id="new-ejercicios"></div>
+      <button class="add-ej-btn" onclick="addEjRow()">+ Ejercicio</button>
+    </div>
+
+    <!-- TAB AI -->
+    <div class="tab-content" id="tab-ai">
+      <div class="modal-label">Pega el texto de tu rutina</div>
+      <textarea class="ai-box" id="ai-input" placeholder="Ej:
+Tracción Core
+1. Hip Thrust Unilateral - 3x10 por lado
+2. Hollow Body Hold - 3x20 seg
+3. Pallof Press - 3x10 por lado
+..."></textarea>
+      <button class="ai-parse-btn" id="ai-parse-btn" onclick="parseWithAI()">✨ Interpretar con IA</button>
+      <div id="ai-preview"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-confirm" id="modal-save-btn" onclick="saveNuevaRutina()">Guardar en Notion</button>
+    </div>
+    <div id="modal-status" style="margin-top:10px;font-size:13px;color:#f87171;text-align:center;"></div>
+  </div>
+</div>
+
+<script>
+const DB_EPR = '37b19b4519e180bf9518d9f5dafecda9';
+const DB_SES = '37b19b4519e1803dbd97df444373f07e';
+const DB_LOG = '37b19b4519e18007a1bdccd04685d91c';
+const PROXY = '/.netlify/functions/notion';
+
+let state = { rutina: null, sensaciones: '', ejercicios: [] };
+let parsedRutina = null;
+let timers = {};
+
+async function notion(url, method, body) {
+  const r = await fetch(PROXY, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: 'https://api.notion.com/v1/' + url, method: method || 'GET', body })
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+async function claude(prompt) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const d = await r.json();
+  return d.content?.[0]?.text || '';
+}
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function goHome() { show('s-home'); loadRutinas(); loadHistorial(); }
+function setSens(btn, val) {
+  document.querySelectorAll('.sens-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.sensaciones = val;
+}
+
+async function loadRutinas() {
+  document.getElementById('rutinas-list').innerHTML = '<div class="loading"><span class="spinner"></span> Cargando...</div>';
+  try {
+    const data = await notion('databases/' + DB_EPR + '/query', 'POST', { page_size: 100 });
+    const map = {};
+    data.results.forEach(r => {
+      const sel = r.properties['Select']?.select?.name || r.properties['Rutina']?.select?.name;
+      if (sel) map[sel] = (map[sel] || 0) + 1;
+    });
+    const rutinas = Object.keys(map);
+    if (!rutinas.length) { document.getElementById('rutinas-list').innerHTML = '<p style="color:#666;font-size:14px;">No hay rutinas.</p>'; return; }
+    document.getElementById('rutinas-list').innerHTML = rutinas.map(r => `
+      <div class="rutina-card" onclick="selectRutina('${r}')">
+        <button class="rutina-del" onclick="event.stopPropagation();deleteRutina('${r}')">×</button>
+        <h2>${r}</h2>
+        <p>${map[r]} ejercicios</p>
+        <span class="rutina-badge">Calistenia</span>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('rutinas-list').innerHTML = '<p style="color:#f87171;font-size:14px;">Error: ' + e.message + '</p>';
+  }
+}
+
+async function loadHistorial() {
+  try {
+    const data = await notion('databases/' + DB_SES + '/query', 'POST', {
+      sorts: [{ property: 'Date', direction: 'descending' }],
+      page_size: 5
+    });
+    if (!data.results?.length) { document.getElementById('historial-list').innerHTML = '<p style="color:#555;font-size:13px;">Sin sesiones aún.</p>'; return; }
+    document.getElementById('historial-list').innerHTML = data.results.map(r => {
+      const title = Object.values(r.properties).find(v => v.type === 'title')?.title?.[0]?.plain_text || '—';
+      const sens = r.properties['Sensaciones']?.select?.name || '';
+      return `<div class="hist-item"><div class="hist-rutina">${title}</div><div class="hist-sens">${sens}</div></div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('historial-list').innerHTML = '';
+  }
+}
+
+async function deleteRutina(nombre) {
+  if (!confirm('¿Eliminar rutina "' + nombre + '" de Notion?')) return;
+  const data = await notion('databases/' + DB_EPR + '/query', 'POST', {
+    filter: { property: 'Select', select: { equals: nombre } }, page_size: 100
+  });
+  for (const r of data.results) {
+    await notion('pages/' + r.id, 'PATCH', { archived: true });
+  }
+  loadRutinas();
+}
+
+async function selectRutina(nombre) {
+  state.rutina = nombre; state.sensaciones = '';
+  Object.values(timers).forEach(t => clearInterval(t.interval));
+  timers = {};
+  document.querySelectorAll('.sens-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('session-title').textContent = nombre;
+  document.getElementById('session-count').textContent = '';
+  document.getElementById('ejercicios-list').innerHTML = '<div class="loading"><span class="spinner"></span> Cargando...</div>';
+  document.getElementById('status-msg').innerHTML = '';
+  document.getElementById('save-btn').disabled = false;
+  document.getElementById('save-btn').textContent = 'Guardar en Notion';
+  show('s-session');
+
+  const data = await notion('databases/' + DB_EPR + '/query', 'POST', {
+    filter: { property: 'Select', select: { equals: nombre } }, page_size: 100
+  });
+  const sorted = data.results.sort((a,b) => (a.properties['Orden']?.number||99) - (b.properties['Orden']?.number||99));
+
+  state.ejercicios = await Promise.all(sorted.map(async r => {
+    const relId = r.properties['Ejercicios']?.relation?.[0]?.id || null;
+    let ejNombre = '';
+    if (relId) {
+      try {
+        const p = await notion('pages/' + relId, 'GET');
+        const tp = Object.values(p.properties).find(v => v.type === 'title');
+        ejNombre = tp?.title?.[0]?.plain_text || '';
+      } catch(e) {}
+    }
+    if (!ejNombre) {
+      const tp = Object.values(r.properties).find(v => v.type === 'title');
+      ejNombre = tp?.title?.[0]?.plain_text || 'Ejercicio';
+    }
+    return {
+      eprId: r.id, nombre: ejNombre, relId,
+      dosis: r.properties['Dosis']?.rich_text?.[0]?.plain_text || ''
+    };
+  }));
+
+  document.getElementById('session-count').textContent = state.ejercicios.length + ' ejercicios';
+  renderEjercicios();
+}
+
+function renderEjercicios() {
+  document.getElementById('ejercicios-list').innerHTML = state.ejercicios.map((ej, i) => `
+    <div class="exercise-card" id="card${i}">
+      <div class="ex-top">
+        <input type="checkbox" class="ex-check" id="chk${i}" onchange="document.getElementById('card${i}').classList.toggle('done',this.checked)">
+        <div style="flex:1">
+          <div class="ex-name">${ej.nombre}</div>
+          <div class="ex-dosis"><span>Dosis ideal: </span>${ej.dosis || '—'}</div>
+        </div>
+      </div>
+      <div class="field-label">Series</div>
+      <div id="series-${i}">
+        <div class="serie-row">
+          <span class="serie-num">1</span>
+          <input type="text" placeholder="Reps">
+          <input type="text" placeholder="kg">
+          <button class="rm-serie" onclick="removeSerie(this)">×</button>
+        </div>
+      </div>
+      <button class="add-serie-btn" onclick="addSerie(${i})">+ Serie</button>
+      <div class="rest-timer">
+        <span class="field-label" style="margin:0">Descanso</span>
+        <button class="timer-btn" id="tbtn${i}" onclick="toggleTimer(${i})">▶ Start</button>
+        <span class="timer-display" id="tdisp${i}">2:00</span>
+      </div>
+      <div class="field-label">Notas</div>
+      <textarea id="notas${i}" placeholder="RIR, sensaciones, ajustes..."></textarea>
+    </div>`).join('');
+}
+
+function addSerie(i) {
+  const c = document.getElementById('series-' + i);
+  const n = c.querySelectorAll('.serie-row').length + 1;
+  const row = document.createElement('div');
+  row.className = 'serie-row';
+  row.innerHTML = `<span class="serie-num">${n}</span><input type="text" placeholder="Reps"><input type="text" placeholder="kg"><button class="rm-serie" onclick="removeSerie(this)">×</button>`;
+  c.appendChild(row);
+}
+
+function removeSerie(btn) {
+  const row = btn.closest('.serie-row');
+  const c = row.parentElement;
+  if (c.querySelectorAll('.serie-row').length > 1) {
+    row.remove();
+    c.querySelectorAll('.serie-num').forEach((s,i) => s.textContent = i+1);
+  }
+}
+
+function toggleTimer(i) {
+  const btn = document.getElementById('tbtn' + i);
+  const disp = document.getElementById('tdisp' + i);
+  if (timers[i]) {
+    clearInterval(timers[i].interval);
+    delete timers[i];
+    btn.textContent = '▶ Start';
+    btn.classList.remove('running');
+    disp.textContent = '2:00';
+  } else {
+    let secs = 120;
+    disp.textContent = '2:00';
+    btn.textContent = '⏹ Stop';
+    btn.classList.add('running');
+    timers[i] = { interval: setInterval(() => {
+      secs--;
+      const m = Math.floor(secs/60), s = secs%60;
+      disp.textContent = m + ':' + String(s).padStart(2,'0');
+      if (secs <= 0) {
+        clearInterval(timers[i].interval);
+        delete timers[i];
+        btn.textContent = '▶ Start';
+        btn.classList.remove('running');
+        disp.textContent = '✅';
+        if ('vibrate' in navigator) navigator.vibrate([200,100,200]);
+      }
+    }, 1000) };
+  }
+}
+
+async function guardarSesion() {
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const msg = document.getElementById('status-msg');
+  msg.innerHTML = '';
+  try {
+    const fecha = new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' });
+    const sesion = await notion('pages', 'POST', {
+      parent: { database_id: DB_SES },
+      properties: {
+        'Name': { title: [{ text: { content: fecha + ' — ' + state.rutina } }] },
+        'Rutina': { select: { name: state.rutina } },
+        'Sensaciones': { select: { name: state.sensaciones || '😐 Normal' } },
+        'Completada': { checkbox: false }
+      }
+    });
+    if (!sesion.id) throw new Error('No se pudo crear la sesión.');
+    let saved = 0;
+    for (let i = 0; i < state.ejercicios.length; i++) {
+      const ej = state.ejercicios[i];
+      const rows = document.getElementById('series-' + i).querySelectorAll('.serie-row');
+      const series = [];
+      rows.forEach((row, s) => {
+        const inputs = row.querySelectorAll('input');
+        const reps = inputs[0]?.value.trim();
+        const kg = inputs[1]?.value.trim();
+        if (reps || kg) series.push('S' + (s+1) + ': ' + (reps||'—') + (kg ? ' · ' + kg + 'kg' : ''));
+      });
+      const notas = document.getElementById('notas' + i)?.value?.trim() || '';
+      const contenido = series.join(' | ') + (notas ? '\n📝 ' + notas : '');
+      const done = document.getElementById('chk' + i)?.checked || false;
+      const logProps = {
+        'Name': { title: [{ text: { content: ej.nombre } }] },
+        'Sesiones': { relation: [{ id: sesion.id }] },
+        'dosis real': { rich_text: [{ text: { content: contenido } }] },
+        'Completado': { checkbox: done }
+      };
+      if (ej.relId) logProps['Ejercicios'] = { relation: [{ id: ej.relId }] };
+      await notion('pages', 'POST', { parent: { database_id: DB_LOG }, properties: logProps });
+      saved++;
+    }
+    document.getElementById('done-summary').textContent = saved + ' ejercicios guardados en Notion';
+    show('s-done');
+  } catch(e) {
+    msg.innerHTML = '<div class="status-err">❌ ' + e.message + '</div>';
+    btn.disabled = false; btn.textContent = 'Guardar en Notion';
+  }
+}
+
+// MODAL
+let ejCount = 0;
+let activeTab = 'manual';
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='manual')||(i===1&&tab==='ai')));
+  document.getElementById('tab-manual').classList.toggle('active', tab==='manual');
+  document.getElementById('tab-ai').classList.toggle('active', tab==='ai');
+}
+
+function openModal() {
+  ejCount = 0; parsedRutina = null;
+  document.getElementById('new-ejercicios').innerHTML = '';
+  document.getElementById('new-rutina-name').value = '';
+  document.getElementById('modal-status').textContent = '';
+  document.getElementById('ai-input').value = '';
+  document.getElementById('ai-preview').innerHTML = '';
+  switchTab('manual');
+  addEjRow(); addEjRow(); addEjRow();
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function addEjRow() {
+  const id = ejCount++;
+  const div = document.createElement('div');
+  div.className = 'ej-row'; div.id = 'ejrow-' + id;
+  div.innerHTML = `<input type="text" placeholder="Nombre" id="ejnom-${id}"><input type="text" placeholder="Dosis" id="ejdos-${id}" style="max-width:110px"><button class="rm-btn" onclick="document.getElementById('ejrow-${id}').remove()">×</button>`;
+  document.getElementById('new-ejercicios').appendChild(div);
+}
+
+async function parseWithAI() {
+  const text = document.getElementById('ai-input').value.trim();
+  if (!text) return;
+  const btn = document.getElementById('ai-parse-btn');
+  btn.disabled = true; btn.textContent = '✨ Interpretando...';
+  document.getElementById('ai-preview').innerHTML = '';
+
+  try {
+    const prompt = `Eres un parser de rutinas de gimnasio. Dado este texto, extrae el nombre de la rutina y la lista de ejercicios con su dosis ideal.
+Responde SOLO con JSON válido, sin texto extra, sin backticks, con este formato exacto:
+{"rutina":"nombre","ejercicios":[{"nombre":"nombre ejercicio","dosis":"dosis ideal"},...]}}
+
+Texto:
+${text}`;
+
+    const raw = await claude(prompt);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    parsedRutina = JSON.parse(clean);
+
+    document.getElementById('ai-preview').innerHTML = `
+      <div class="parsed-preview">
+        <h4>📋 ${parsedRutina.rutina}</h4>
+        ${parsedRutina.ejercicios.map((e,i) => `
+          <div class="parsed-ej"><strong>${i+1}. ${e.nombre}</strong> — <span style="color:#34d399">${e.dosis}</span></div>
+        `).join('')}
+      </div>`;
+  } catch(e) {
+    document.getElementById('ai-preview').innerHTML = '<p style="color:#f87171;font-size:13px;margin-top:8px;">Error al interpretar. Revisa el formato.</p>';
+    parsedRutina = null;
+  }
+  btn.disabled = false; btn.textContent = '✨ Interpretar con IA';
+}
+
+async function saveNuevaRutina() {
+  const btn = document.getElementById('modal-save-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  document.getElementById('modal-status').textContent = '';
+
+  let nombre, ejercicios;
+
+  if (activeTab === 'ai' && parsedRutina) {
+    nombre = parsedRutina.rutina;
+    ejercicios = parsedRutina.ejercicios.map((e,i) => ({ nombre: e.nombre, dosis: e.dosis, orden: i+1 }));
+  } else {
+    nombre = document.getElementById('new-rutina-name').value.trim();
+    const rows = document.getElementById('new-ejercicios').querySelectorAll('.ej-row');
+    ejercicios = [];
+    rows.forEach((row, i) => {
+      const nom = row.querySelector('input[id^="ejnom"]')?.value.trim();
+      const dos = row.querySelector('input[id^="ejdos"]')?.value.trim();
+      if (nom) ejercicios.push({ nombre: nom, dosis: dos || '', orden: i+1 });
+    });
+  }
+
+  if (!nombre) { document.getElementById('modal-status').textContent = 'Falta el nombre de la rutina.'; btn.disabled=false; btn.textContent='Guardar en Notion'; return; }
+  if (!ejercicios.length) { document.getElementById('modal-status').textContent = 'Añade al menos un ejercicio.'; btn.disabled=false; btn.textContent='Guardar en Notion'; return; }
+
+  try {
+    for (const ej of ejercicios) {
+      await notion('pages', 'POST', {
+        parent: { database_id: DB_EPR },
+        properties: {
+          'Nombre': { title: [{ text: { content: nombre + ' – ' + ej.nombre } }] },
+          'Select': { select: { name: nombre } },
+          'Dosis': { rich_text: [{ text: { content: ej.dosis } }] },
+          'Orden': { number: ej.orden }
+        }
+      });
+    }
+    closeModal();
+    loadRutinas();
+  } catch(e) {
+    document.getElementById('modal-status').textContent = '❌ ' + e.message;
+    btn.disabled=false; btn.textContent='Guardar en Notion';
+  }
+}
+
+// INIT
+const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const hoy = new Date();
+document.getElementById('today-date').textContent = dias[hoy.getDay()] + ', ' + hoy.getDate() + ' de ' + meses[hoy.getMonth()];
+loadRutinas();
+loadHistorial();
+</script>
+</body>
+</html>
