@@ -6,7 +6,6 @@ exports.handler = async (event) => {
   };
 
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
-
   if (!event.body) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'No body' }) };
 
   let parsed;
@@ -14,21 +13,21 @@ exports.handler = async (event) => {
   catch(e) { return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
+        'Authorization': 'Bearer ' + process.env.GROQ_API_KEY
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'llama3-8b-8192',
         max_tokens: 1000,
         messages: parsed.messages
       })
     });
     const data = await res.json();
-    return { statusCode: 200, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
+    const text = data.choices?.[0]?.message?.content || '';
+    return { statusCode: 200, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) };
   } catch(e) {
     return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: e.message }) };
   }
