@@ -10,7 +10,11 @@ exports.handler = async (event) => {
 
   let parsed;
   try { parsed = JSON.parse(event.body); }
-  catch(e) { return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
+  catch(e) { return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid JSON in request' }) }; }
+
+  if (!process.env.GROQ_API_KEY) {
+    return { statusCode: 200, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'GROQ_API_KEY no está configurada en Netlify' }) };
+  }
 
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -20,15 +24,21 @@ exports.handler = async (event) => {
         'Authorization': 'Bearer ' + process.env.GROQ_API_KEY
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant'
+        model: 'llama-3.1-8b-instant',
         max_tokens: 1000,
         messages: parsed.messages
       })
     });
+
     const data = await res.json();
+
+    if (!res.ok) {
+      return { statusCode: 200, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Groq error: ' + (data.error?.message || JSON.stringify(data)) }) };
+    }
+
     const text = data.choices?.[0]?.message?.content || '';
     return { statusCode: 200, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) };
   } catch(e) {
-    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: e.message }) };
+    return { statusCode: 200, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: e.message }) };
   }
 };
