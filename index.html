@@ -196,6 +196,7 @@ async function notion(url, method, body) {
 async function claude(prompt) {
   const r = await fetch('/.netlify/functions/claude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }) });
   const d = await r.json();
+  if (d.error) throw new Error(d.error);
   return d.text || '';
 }
 
@@ -327,7 +328,7 @@ async function parseWithAI(){
     const clean=raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
     parsedRutina=JSON.parse(clean);
     document.getElementById('ai-preview').innerHTML=`<div class="parsed-preview"><h4>📋 ${parsedRutina.rutina}</h4>${parsedRutina.ejercicios.map((e,i)=>`<div class="parsed-ej"><strong>${i+1}. ${e.nombre}</strong> — <span style="color:#34d399">${e.dosis}</span></div>`).join('')}</div>`;
-  }catch(e){document.getElementById('ai-preview').innerHTML='<p style="color:#f87171;font-size:13px;margin-top:8px;">Error al interpretar.</p>';parsedRutina=null;}
+  }catch(e){document.getElementById('ai-preview').innerHTML='<p style="color:#f87171;font-size:13px;margin-top:8px;">❌ '+e.message+'</p>';parsedRutina=null;}
   btn.disabled=false; btn.textContent='✨ Interpretar con IA';
 }
 
