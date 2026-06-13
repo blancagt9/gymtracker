@@ -189,8 +189,9 @@ let timers = {};
 
 async function notion(url, method, body) {
   const r = await fetch(PROXY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: 'https://api.notion.com/v1/' + url, method: method || 'GET', body }) });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  return r.json();
+  const d = await r.json();
+  if (!r.ok || d.object === 'error') throw new Error(d.message || ('HTTP ' + r.status));
+  return d;
 }
 
 async function claude(prompt) {
